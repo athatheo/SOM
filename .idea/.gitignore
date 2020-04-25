@@ -1,5 +1,5 @@
 # Default ignored files
 /shelf/
 /workspace.xml
-venv/
-python3.7/
+venv/*
+/python3.7/
