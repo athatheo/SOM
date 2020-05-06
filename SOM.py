@@ -19,13 +19,29 @@ def create_2d_map(side_len, input_dimensions):
 
 
 def fit(epochs, map, data):
+    prev_MAP = np.zeros((5,5,4))
+    convergence = [1]
     for epoch in range(epochs):
         # Randomize the order of the data
         data = data.sample(frac=1).reset_index(drop=True)
-        for iteration, row in data.iterrows():
+
+        learning_rate = update_learning_rate(epoch, epochs)
+        radius = update_radius(epoch, epochs)
+        neighborhood = update_neighborhood(learning_rate)
+
+        for index, row in data.iterrows():
             vector = [row[0], row[1], row[2], row[3]]
-            map = update(vector, map, iteration, epochs)
-    return map
+            map = update(vector, map, learning_rate, radius, neighborhood)
+
+        J = np.linalg.norm(map - prev_MAP)
+
+        prev_MAP = np.copy(map)
+
+        if J < min(convergence):
+            print('Lower error found: %s' % str(J) + ' at epoch: %s' % str(epoch))
+        convergence.append(J)
+
+    return map, convergence, J
 
 
 def find_minimum(vector, map):
@@ -43,12 +59,9 @@ def plot():
     plt.show()
 
 
-def update(vector, map, iteration, epochs):
+def update(vector, map, learning_rate, radius, neighborhood):
     x, y = find_minimum(vector, map)
     bmu = map[x][y]
-    learning_rate = update_learning_rate(iteration, epochs)
-    radius = update_radius(iteration, epochs)
-    neighborhood = update_neighborhood(learning_rate)
     for i in range(len(map)):
         for j in range(len(map[0])):
             if euclid_distance(map[i][j], bmu) < radius:
@@ -56,20 +69,20 @@ def update(vector, map, iteration, epochs):
     return map
 
 
-def update_radius(iteration, epochs):
-    radius = 5
-    return radius * math.exp(-iteration / epochs)
+def update_radius(epoch, epochs):
+    radius = 3
+    return radius * math.exp(-epoch / epochs)
 
 
 def update_neighborhood(learning_rate):
     # Bubble neighborhood function
-    # neighborhood = learning_rate
-    return 1
+    neighborhood = learning_rate
+    return neighborhood
 
 
-def update_learning_rate(iteration, epochs):
-    learning_rate = 0.25
-    factor = 1 - iteration / epochs
+def update_learning_rate(epoch, epochs):
+    learning_rate = 0.9
+    factor = 1 - (epoch / epochs)
     # factor = 1/iteration
     # factor = math.exp(iteration/epochs)
     learning_rate = learning_rate * factor
@@ -88,5 +101,18 @@ df = load_data(1)  ##### REMEMBER TO CHANGE THIS TO CHOICE
 map = create_2d_map(5, len(df.columns))
 
 # Train it
-map = fit(epochs=1, map=map, data=df)
+map, convergence, J = fit(epochs=500, map=map, data=df)
 # Print results
+from multiprocessing import Process
+
+#p = Process(target=fit, args=(500, map, df,))
+#p.start()
+#p.join()
+
+plt.plot(convergence)
+plt.ylabel('error')
+plt.xlabel('epoch')
+plt.grid(True)
+plt.yscale('log')
+plt.show()
+print('Final error: ' + str(J))
