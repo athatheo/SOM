@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import load_iris
 from sklearn.datasets import load_breast_cancer
 
-
 def load_data(choice):
     if choice == 1:
         dataset = load_iris()
